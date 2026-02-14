@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply font-sans antialiased bg-stone-50 text-stone-900;
+}
+
+/* Swipe card touch */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
