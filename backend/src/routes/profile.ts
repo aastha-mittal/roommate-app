@@ -15,6 +15,7 @@ const preferenceSchema = z.object({
 const onboardingSchema = z.object({
   housingType: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]).optional(),
   preferredAreas: z.array(z.string()).optional(),
+  dormRanking: z.array(z.string()).optional(),
   budgetMin: z.number().int().min(0).nullable().optional(),
   budgetMax: z.number().int().min(0).nullable().optional(),
   leaseDuration: z.enum(["6_MONTHS", "9_MONTHS", "12_MONTHS"]).optional(),
@@ -56,7 +57,17 @@ profileRouter.patch("/", async (req: AuthenticatedRequest, res) => {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
   const { preferences: prefs, moveInDate: moveInStr, ...rest } = parsed.data;
-  const updateData: Record<string, unknown> = { ...rest };
+  const allowedKeys = [
+    "housingType", "preferredAreas", "dormRanking", "budgetMin", "budgetMax", "leaseDuration", "genderPreference",
+    "sleepSchedule", "cleanlinessLevel", "guestsFrequency", "studyEnvironment", "noiseTolerance",
+    "smokingStance", "drinkingStance", "petsStance", "introvertExtrovert", "socialHabits",
+    "conflictStyle", "sharedActivities", "bio", "tags", "avatarUrl", "onboardingComplete",
+  ] as const;
+  const updateData: Record<string, unknown> = {};
+  for (const key of allowedKeys) {
+    const val = rest[key as keyof typeof rest];
+    if (val !== undefined) updateData[key] = val;
+  }
   if (moveInStr) {
     try {
       updateData.moveInDate = new Date(moveInStr);

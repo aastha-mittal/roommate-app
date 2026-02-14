@@ -5,18 +5,41 @@ import { profile as profileApi, type ProfileResponse } from "../api/client";
 export default function Dashboard() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError(null);
     profileApi
       .get()
-      .then(setProfile)
+      .then((p) => {
+        setProfile(p);
+        setError(null);
+      })
+      .catch((err) => {
+        setProfile(null);
+        setError(err instanceof Error ? err.message : "Failed to load profile");
+      })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (loading) {
     return (
       <div className="flex justify-center py-20">
         <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button type="button" onClick={load} className="py-2 px-4 rounded-xl bg-amber-500 text-white">
+          Retry
+        </button>
       </div>
     );
   }
@@ -67,9 +90,25 @@ export default function Dashboard() {
             <h3 className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2">Housing</h3>
             <ul className="text-sm text-stone-700 space-y-1">
               <li>Type: {housingLabel}</li>
-              <li>Areas: {profile.preferredAreas?.length ? profile.preferredAreas.join(", ") : "—"}</li>
-              <li>Budget: {budget}</li>
-              <li>Lease: {leaseLabel}</li>
+              {profile.housingType === "ON_CAMPUS" ? (
+                (profile.dormRanking?.length ?? 0) > 0 && (
+                  <li>
+                    <span className="text-stone-500">Dorm ranking: </span>
+                    {(profile.dormRanking ?? []).map((dorm, i) => (
+                      <span key={dorm}>
+                        {i + 1}. {dorm}
+                        {i < (profile.dormRanking?.length ?? 0) - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                  </li>
+                )
+              ) : (
+                <>
+                  <li>Areas: {profile.preferredAreas?.length ? profile.preferredAreas.join(", ") : "—"}</li>
+                  <li>Budget: {budget}</li>
+                  <li>Lease: {leaseLabel}</li>
+                </>
+              )}
             </ul>
           </div>
           <div>
@@ -83,11 +122,11 @@ export default function Dashboard() {
               <li>Pets: {profile.petsStance?.replace("_", " ") ?? "—"}</li>
             </ul>
           </div>
-          {profile.preferences?.length > 0 && (
+          {(profile.preferences?.length ?? 0) > 0 && (
             <div>
               <h3 className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2">Dealbreakers & strength</h3>
               <ul className="text-sm space-y-1">
-                {profile.preferences.map((p) => (
+                {(profile.preferences ?? []).map((p) => (
                   <li key={p.category} className="text-stone-700">
                     {p.category.replace("_", " ")}: strength {p.strength}
                     {p.dealbreaker && <span className="text-amber-600 ml-1">(dealbreaker)</span>}

@@ -39,6 +39,7 @@ model Profile {
   // Housing
   housingType       String?  @map("housing_type")   // ON_CAMPUS | OFF_CAMPUS
   preferredAreas    String[] @map("preferred_areas") // neighborhoods
+  dormRanking       String[] @default([]) @map("dorm_ranking") // ranked CMU dorms (when on-campus)
   budgetMin         Int?     @map("budget_min")
   budgetMax         Int?     @map("budget_max")
   leaseDuration     String?  @map("lease_duration")  // 6_MONTHS | 9_MONTHS | 12_MONTHS

@@ -84,6 +84,24 @@ const PREFERENCE_CATEGORIES = [
   { key: "BUDGET", label: "Budget" },
 ];
 
+// CMU on-campus residence halls (user ranks in order of preference)
+const CMU_DORMS = [
+  "Morewood Gardens",
+  "Stever House",
+  "McGill House",
+  "Scobell House",
+  "Donner House",
+  "Resnik House",
+  "Welch House",
+  "Henderson House",
+  "Boss House",
+  "Mudge House",
+  "E-Tower",
+  "Hamerschlag House",
+  "West Wing",
+  "Fifth & Clyde Residence Hall",
+];
+
 export default function Onboarding() {
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,6 +110,7 @@ export default function Onboarding() {
     preferredAreas: [],
     sharedActivities: [],
     tags: [],
+    dormRanking: [],
     preferences: PREFERENCE_CATEGORIES.map((c) => ({ category: c.key, value: "FLEXIBLE", strength: 5, dealbreaker: false })),
   });
   const [areasInput, setAreasInput] = useState("");
@@ -103,30 +122,33 @@ export default function Onboarding() {
       .get()
       .then((p) => {
         setData({
-          housingType: p.housingType,
-          preferredAreas: p.preferredAreas ?? [],
+          housingType: p.housingType ?? undefined,
+          preferredAreas: Array.isArray(p.preferredAreas) ? p.preferredAreas : [],
           budgetMin: p.budgetMin ?? undefined,
           budgetMax: p.budgetMax ?? undefined,
-          leaseDuration: p.leaseDuration,
-          moveInDate: p.moveInDate ? p.moveInDate.slice(0, 10) : undefined,
+          leaseDuration: p.leaseDuration ?? undefined,
+          moveInDate: p.moveInDate ? String(p.moveInDate).slice(0, 10) : undefined,
           genderPreference: p.genderPreference ?? undefined,
-          sleepSchedule: p.sleepSchedule,
-          cleanlinessLevel: p.cleanlinessLevel,
-          guestsFrequency: p.guestsFrequency,
-          studyEnvironment: p.studyEnvironment,
-          noiseTolerance: p.noiseTolerance,
-          smokingStance: p.smokingStance,
-          drinkingStance: p.drinkingStance,
-          petsStance: p.petsStance,
-          introvertExtrovert: p.introvertExtrovert,
-          socialHabits: p.socialHabits,
-          conflictStyle: p.conflictStyle,
-          sharedActivities: p.sharedActivities ?? [],
-          bio: p.bio,
-          tags: p.tags ?? [],
-          preferences: p.preferences?.length
+          sleepSchedule: p.sleepSchedule ?? undefined,
+          cleanlinessLevel: p.cleanlinessLevel ?? undefined,
+          guestsFrequency: p.guestsFrequency ?? undefined,
+          studyEnvironment: p.studyEnvironment ?? undefined,
+          noiseTolerance: p.noiseTolerance ?? undefined,
+          smokingStance: p.smokingStance ?? undefined,
+          drinkingStance: p.drinkingStance ?? undefined,
+          petsStance: p.petsStance ?? undefined,
+          introvertExtrovert: p.introvertExtrovert ?? undefined,
+          socialHabits: p.socialHabits ?? undefined,
+          conflictStyle: p.conflictStyle ?? undefined,
+          sharedActivities: Array.isArray(p.sharedActivities) ? p.sharedActivities : [],
+          bio: p.bio ?? undefined,
+          tags: Array.isArray(p.tags) ? p.tags : [],
+          preferences: (p.preferences?.length
             ? p.preferences.map((pr) => ({ category: pr.category, value: pr.value, strength: pr.strength, dealbreaker: pr.dealbreaker }))
-            : PREFERENCE_CATEGORIES.map((c) => ({ category: c.key, value: "FLEXIBLE", strength: 5, dealbreaker: false })),
+            : PREFERENCE_CATEGORIES.map((c) => ({ category: c.key, value: "FLEXIBLE", strength: 5, dealbreaker: false }))),
+          dormRanking: Array.isArray(p.dormRanking) && p.dormRanking.length
+            ? p.dormRanking
+            : (p.housingType === "ON_CAMPUS" ? [...CMU_DORMS] : []),
         });
         setAreasInput((p.preferredAreas ?? []).join(", "));
         setTagsInput((p.tags ?? []).join(", "));
@@ -146,7 +168,7 @@ export default function Onboarding() {
       await profile.update(payload);
       if (stepIndex === STEPS.length - 1) {
         await profile.onboardingComplete();
-        navigate("/swipe", { replace: true });
+        navigate("/matches", { replace: true });
       } else {
         setStepIndex((i) => i + 1);
       }
@@ -191,58 +213,117 @@ export default function Onboarding() {
                   <button
                     key={o.value}
                     type="button"
-                    onClick={() => setData((d) => ({ ...d, housingType: o.value }))}
+                    onClick={() =>
+                      setData((d) => ({
+                        ...d,
+                        housingType: o.value,
+                        dormRanking: o.value === "ON_CAMPUS" ? (d.dormRanking?.length ? d.dormRanking : [...CMU_DORMS]) : [],
+                      }))
+                    }
                     className={`flex-1 py-2 px-3 rounded-xl border ${data.housingType === o.value ? "border-amber-500 bg-amber-50 text-amber-800" : "border-stone-300"}`}
                   >
                     {o.label}
                   </button>
                 ))}
               </div>
-              <label className="block font-medium text-stone-700">Preferred areas (comma-separated)</label>
-              <input
-                type="text"
-                value={areasInput}
-                onChange={(e) => setAreasInput(e.target.value)}
-                placeholder="e.g. Squirrel Hill, Shadyside"
-                className="w-full px-4 py-2 rounded-xl border border-stone-300"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-medium text-stone-700 text-sm">Budget min ($)</label>
+              {data.housingType === "ON_CAMPUS" && (
+                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                  <label className="block font-medium text-stone-700 mb-2">Rank your preferred CMU dorms</label>
+                  <p className="text-sm text-stone-500 mb-3">First choice at the top. Use arrows to reorder.</p>
+                  <ul className="space-y-2">
+                    {(data.dormRanking ?? CMU_DORMS).map((dorm, i) => (
+                      <li
+                        key={dorm}
+                        className="flex items-center gap-2 bg-white rounded-lg border border-stone-200 px-3 py-2"
+                      >
+                        <span className="text-stone-500 w-6 text-sm font-medium">{i + 1}.</span>
+                        <span className="flex-1 text-stone-800">{dorm}</span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = data.dormRanking ?? [...CMU_DORMS];
+                              if (i <= 0) return;
+                              const next = [...list];
+                              [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                              setData((d) => ({ ...d, dormRanking: next }));
+                            }}
+                            disabled={i === 0}
+                            className="p-1.5 rounded border border-stone-300 text-stone-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-100"
+                            aria-label="Move up"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = data.dormRanking ?? [...CMU_DORMS];
+                              if (i >= list.length - 1) return;
+                              const next = [...list];
+                              [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                              setData((d) => ({ ...d, dormRanking: next }));
+                            }}
+                            disabled={i >= (data.dormRanking ?? CMU_DORMS).length - 1}
+                            className="p-1.5 rounded border border-stone-300 text-stone-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-100"
+                            aria-label="Move down"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {data.housingType === "OFF_CAMPUS" && (
+                <>
+                  <label className="block font-medium text-stone-700">Preferred areas (comma-separated)</label>
                   <input
-                    type="number"
-                    value={data.budgetMin ?? ""}
-                    onChange={(e) => setData((d) => ({ ...d, budgetMin: e.target.value ? Number(e.target.value) : undefined }))}
+                    type="text"
+                    value={areasInput}
+                    onChange={(e) => setAreasInput(e.target.value)}
+                    placeholder="e.g. Squirrel Hill, Shadyside"
                     className="w-full px-4 py-2 rounded-xl border border-stone-300"
                   />
-                </div>
-                <div>
-                  <label className="block font-medium text-stone-700 text-sm">Budget max ($)</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-medium text-stone-700 text-sm">Budget min ($)</label>
+                      <input
+                        type="number"
+                        value={data.budgetMin ?? ""}
+                        onChange={(e) => setData((d) => ({ ...d, budgetMin: e.target.value ? Number(e.target.value) : undefined }))}
+                        className="w-full px-4 py-2 rounded-xl border border-stone-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-stone-700 text-sm">Budget max ($)</label>
+                      <input
+                        type="number"
+                        value={data.budgetMax ?? ""}
+                        onChange={(e) => setData((d) => ({ ...d, budgetMax: e.target.value ? Number(e.target.value) : undefined }))}
+                        className="w-full px-4 py-2 rounded-xl border border-stone-300"
+                      />
+                    </div>
+                  </div>
+                  <label className="block font-medium text-stone-700">Lease duration</label>
+                  <select
+                    value={data.leaseDuration ?? ""}
+                    onChange={(e) => setData((d) => ({ ...d, leaseDuration: e.target.value as ProfileUpdate["leaseDuration"] }))}
+                    className="w-full px-4 py-2 rounded-xl border border-stone-300"
+                  >
+                    {HOUSING_OPTIONS.leaseDuration.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <label className="block font-medium text-stone-700 text-sm">Move-in date</label>
                   <input
-                    type="number"
-                    value={data.budgetMax ?? ""}
-                    onChange={(e) => setData((d) => ({ ...d, budgetMax: e.target.value ? Number(e.target.value) : undefined }))}
+                    type="date"
+                    value={data.moveInDate ?? ""}
+                    onChange={(e) => setData((d) => ({ ...d, moveInDate: e.target.value }))}
                     className="w-full px-4 py-2 rounded-xl border border-stone-300"
                   />
-                </div>
-              </div>
-              <label className="block font-medium text-stone-700">Lease duration</label>
-              <select
-                value={data.leaseDuration ?? ""}
-                onChange={(e) => setData((d) => ({ ...d, leaseDuration: e.target.value as ProfileUpdate["leaseDuration"] }))}
-                className="w-full px-4 py-2 rounded-xl border border-stone-300"
-              >
-                {HOUSING_OPTIONS.leaseDuration.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-              <label className="block font-medium text-stone-700 text-sm">Move-in date</label>
-              <input
-                type="date"
-                value={data.moveInDate ?? ""}
-                onChange={(e) => setData((d) => ({ ...d, moveInDate: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-stone-300"
-              />
+                </>
+              )}
             </div>
           )}
 

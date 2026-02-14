@@ -15,8 +15,16 @@ export async function api<T>(
     ...options.headers,
   };
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? res.statusText);
+  const contentType = res.headers.get("content-type");
+  const data = contentType?.includes("application/json")
+    ? await res.json().catch(() => ({}))
+    : {};
+  if (!res.ok) {
+    const msg = typeof (data as { error?: string }).error === "string"
+      ? (data as { error?: string }).error
+      : res.statusText || "Request failed";
+    throw new Error(msg);
+  }
   return data as T;
 }
 
@@ -64,6 +72,7 @@ export interface ProfileResponse {
   onboardingComplete: boolean;
   housingType?: string;
   preferredAreas: string[];
+  dormRanking?: string[];
   budgetMin?: number;
   budgetMax?: number;
   leaseDuration?: string;
@@ -84,7 +93,7 @@ export interface ProfileResponse {
   bio?: string;
   tags: string[];
   avatarUrl?: string;
-  preferences: { category: string; value: string; strength: number; dealbreaker: boolean }[];
+  preferences?: { category: string; value: string; strength: number; dealbreaker: boolean }[];
 }
 
 export type ProfileUpdate = Partial<ProfileResponse> & { preferences?: { category: string; value: string; strength: number; dealbreaker: boolean }[] };

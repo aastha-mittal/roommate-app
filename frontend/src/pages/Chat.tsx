@@ -18,14 +18,18 @@ export default function Chat() {
 
   useEffect(() => {
     if (!matchId) return;
+    setLoading(true);
     Promise.all([
       chatApi.messages(matchId),
       matchApi.list(),
-    ]).then(([msgRes, matchRes]) => {
-      setMessages(msgRes.messages);
-      const m = matchRes.matches.find((x) => x.matchId === matchId);
-      setMatchInfo(m ?? null);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([msgRes, matchRes]) => {
+        setMessages(msgRes.messages ?? []);
+        const m = matchRes.matches.find((x) => x.matchId === matchId);
+        setMatchInfo(m ?? null);
+      })
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
   }, [matchId]);
 
   useEffect(() => {

@@ -5,18 +5,33 @@ import { match as matchApi, type MatchListItem } from "../api/client";
 export default function Matches() {
   const [matches, setMatches] = useState<MatchListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError(null);
     matchApi
       .list()
-      .then((res) => setMatches(res.matches))
+      .then((res) => { setMatches(res.matches); setError(null); })
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load matches"))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (loading) {
     return (
       <div className="flex justify-center py-20">
         <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button type="button" onClick={load} className="py-2 px-4 rounded-xl bg-amber-500 text-white">Retry</button>
       </div>
     );
   }
