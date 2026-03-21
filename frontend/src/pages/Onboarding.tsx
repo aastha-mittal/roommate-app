@@ -115,6 +115,7 @@ export default function Onboarding() {
   });
   const [areasInput, setAreasInput] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -159,12 +160,21 @@ export default function Onboarding() {
 
   const saveAndNext = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const payload: ProfileUpdate = {
         ...data,
         preferredAreas: areasInput.split(",").map((s) => s.trim()).filter(Boolean),
         tags: tagsInput.split(",").map((s) => s.trim()).filter(Boolean),
       };
+      // On-campus: only send dorm ranking; strip off-campus-only fields (avoids empty enums / bad dates → 500)
+      if (payload.housingType === "ON_CAMPUS") {
+        payload.preferredAreas = [];
+        delete (payload as Record<string, unknown>).budgetMin;
+        delete (payload as Record<string, unknown>).budgetMax;
+        delete (payload as Record<string, unknown>).leaseDuration;
+        delete (payload as Record<string, unknown>).moveInDate;
+      }
       await profile.update(payload);
       if (stepIndex === STEPS.length - 1) {
         await profile.onboardingComplete();
@@ -172,6 +182,8 @@ export default function Onboarding() {
       } else {
         setStepIndex((i) => i + 1);
       }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save. Try again.");
     } finally {
       setSaving(false);
     }
@@ -190,6 +202,11 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-stone-50 py-8 px-4">
       <div className="max-w-lg mx-auto">
+        {saveError && (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            {saveError}
+          </div>
+        )}
         <div className="mb-8">
           <div className="flex gap-1 mb-2">
             {STEPS.map((s, i) => (

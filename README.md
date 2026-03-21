@@ -38,7 +38,8 @@ Create a PostgreSQL database and set its URL in `backend/.env`:
 
 ```bash
 cp backend/.env.example backend/.env
-# Edit backend/.env: set DATABASE_URL, JWT_SECRET (e.g. a long random string)
+# Edit backend/.env: set DATABASE_URL (required). JWT_SECRET is required in production;
+# locally the app uses a dev fallback if JWT_SECRET is missing so login/signup still work.
 ```
 
 Run migrations and seed:

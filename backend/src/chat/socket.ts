@@ -1,8 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
-
-const JWT_SECRET = process.env.JWT_SECRET!;
+import { JWT_SECRET } from "../config.js";
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 
 export function initChatSocket(httpServer: import("http").Server) {

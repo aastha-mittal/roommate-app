@@ -24,6 +24,15 @@ app.use("/api/profile", profileRouter);
 app.use("/api/match", matchRouter);
 app.use("/api/chat", chatRouter);
 
+// Catch-all for API JSON errors (avoids blank "Internal Server Error" HTML on unhandled async errors)
+app.use("/api", (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[api]", err);
+  const message = err instanceof Error ? err.message : "Server error";
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error", detail: message });
+  }
+});
+
 initChatSocket(httpServer);
 
 httpServer.listen(PORT, () => {

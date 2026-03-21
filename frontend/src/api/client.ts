@@ -20,9 +20,9 @@ export async function api<T>(
     ? await res.json().catch(() => ({}))
     : {};
   if (!res.ok) {
-    const msg = typeof (data as { error?: string }).error === "string"
-      ? (data as { error?: string }).error
-      : res.statusText || "Request failed";
+    const d = data as { error?: string; detail?: string };
+    let msg = typeof d.error === "string" ? d.error : res.statusText || "Request failed";
+    if (typeof d.detail === "string" && d.detail) msg = `${msg}: ${d.detail}`;
     throw new Error(msg);
   }
   return data as T;
