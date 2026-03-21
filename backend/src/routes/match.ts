@@ -128,8 +128,8 @@ matchRouter.get("/", async (req: AuthenticatedRequest, res) => {
   const matches = await prisma.match.findMany({
     where: { OR: [{ userAId: userId }, { userBId: userId }] },
     include: {
-      userA: { select: { id: true, email: true }, include: { profile: { select: { avatarUrl: true, bio: true } } } },
-      userB: { select: { id: true, email: true }, include: { profile: { select: { avatarUrl: true, bio: true } } } },
+      userA: { select: { id: true, email: true, profile: { select: { avatarUrl: true, bio: true } } } },
+      userB: { select: { id: true, email: true, profile: { select: { avatarUrl: true, bio: true } } } },
     },
     orderBy: { createdAt: "desc" },
   });
