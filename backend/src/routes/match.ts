@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth.js";
 import { compatibilityScore } from "../matching-engine/index.js";
+import { parseArray } from "../lib/profileArrays.js";
 
 const matchRouter = Router();
 matchRouter.use(requireAuth);
@@ -41,8 +42,10 @@ matchRouter.get("/candidates", async (req: AuthenticatedRequest, res) => {
     take: limit * 3,
   });
 
+  const profileForScore = { ...profile, preferredAreas: parseArray(profile.preferredAreas) };
   const withScore = candidates.map((c) => {
-    const result = compatibilityScore(profile as Parameters<typeof compatibilityScore>[0], c as Parameters<typeof compatibilityScore>[1]);
+    const cForScore = { ...c, preferredAreas: parseArray(c.preferredAreas) };
+    const result = compatibilityScore(profileForScore as Parameters<typeof compatibilityScore>[0], cForScore as Parameters<typeof compatibilityScore>[1]);
     return {
       profile: c,
       compatibility: result,
@@ -58,9 +61,9 @@ matchRouter.get("/candidates", async (req: AuthenticatedRequest, res) => {
     email: p.user?.email,
     avatarUrl: p.avatarUrl,
     bio: p.bio,
-    tags: p.tags,
+    tags: parseArray(p.tags),
     housingType: p.housingType,
-    preferredAreas: p.preferredAreas,
+    preferredAreas: parseArray(p.preferredAreas),
     budgetMin: p.budgetMin,
     budgetMax: p.budgetMax,
     sleepSchedule: p.sleepSchedule,

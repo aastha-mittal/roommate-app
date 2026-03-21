@@ -1,4 +1,4 @@
-// Roommate Matching App - PostgreSQL schema
+// Roommate Matching App - SQLite for local dev (no PostgreSQL required)
 // Users, Profiles, Preferences, Dealbreakers, Matches, Messages
 
 generator client {
@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -38,8 +38,8 @@ model Profile {
 
   // Housing
   housingType       String?  @map("housing_type")   // ON_CAMPUS | OFF_CAMPUS
-  preferredAreas    String[] @map("preferred_areas") // neighborhoods
-  dormRanking       String[] @default([]) @map("dorm_ranking") // ranked CMU dorms (when on-campus)
+  preferredAreas    String   @default("[]") @map("preferred_areas") // JSON array of neighborhoods
+  dormRanking       String   @default("[]") @map("dorm_ranking") // JSON array of ranked CMU dorms
   budgetMin         Int?     @map("budget_min")
   budgetMax         Int?     @map("budget_max")
   leaseDuration     String?  @map("lease_duration")  // 6_MONTHS | 9_MONTHS | 12_MONTHS
@@ -60,11 +60,11 @@ model Profile {
   introvertExtrovert Int?    @map("introvert_extrovert") // 1-10 slider
   socialHabits       String? @map("social_habits")       // HOME_BODY | BALANCED | VERY_SOCIAL
   conflictStyle      String? @map("conflict_style")       // AVOID | TALK_IT_OUT | MEDIATE
-  sharedActivities   String[] @map("shared_activities")  // interests
+  sharedActivities   String   @default("[]") @map("shared_activities")  // JSON array of interests
 
   // Bio
   bio           String?
-  tags          String[]   // interests for display
+  tags          String   @default("[]")   // JSON array for interests display
   avatarUrl     String?    @map("avatar_url")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -140,7 +140,7 @@ model Message {
   matchId   String   @map("match_id")
   senderId  String   @map("sender_id")
   receiverId String  @map("receiver_id")
-  body      String   @db.Text
+  body      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
 

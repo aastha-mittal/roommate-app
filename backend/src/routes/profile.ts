@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth.js";
+import { parseArray, toArrayJson } from "../lib/profileArrays.js";
 
 const profileRouter = Router();
 
@@ -63,6 +64,16 @@ const onboardingSchema = z.object({
 
 profileRouter.use(requireAuth);
 
+function profileToApi(profile: { preferredAreas: string; dormRanking: string; sharedActivities: string; tags: string; [k: string]: unknown }) {
+  return {
+    ...profile,
+    preferredAreas: parseArray(profile.preferredAreas),
+    dormRanking: parseArray(profile.dormRanking),
+    sharedActivities: parseArray(profile.sharedActivities),
+    tags: parseArray(profile.tags),
+  };
+}
+
 profileRouter.get("/", async (req: AuthenticatedRequest, res) => {
   try {
     const profile = await prisma.profile.findUnique({
@@ -70,7 +81,7 @@ profileRouter.get("/", async (req: AuthenticatedRequest, res) => {
       include: { preferences: true },
     });
     if (!profile) return res.status(404).json({ error: "Profile not found" });
-    return res.json(profile);
+    return res.json(profileToApi(profile));
   } catch (err) {
     console.error("[profile GET]", err);
     const message = err instanceof Error ? err.message : "Server error";
@@ -91,10 +102,13 @@ profileRouter.patch("/", async (req: AuthenticatedRequest, res) => {
       "smokingStance", "drinkingStance", "petsStance", "introvertExtrovert", "socialHabits",
       "conflictStyle", "sharedActivities", "bio", "tags", "avatarUrl", "onboardingComplete",
     ] as const;
+    const arrayKeys = ["preferredAreas", "dormRanking", "sharedActivities", "tags"] as const;
     const updateData: Record<string, unknown> = {};
     for (const key of allowedKeys) {
       const val = rest[key as keyof typeof rest];
-      if (val !== undefined) updateData[key] = val;
+      if (val !== undefined) {
+        updateData[key] = arrayKeys.includes(key) ? toArrayJson(val as string[]) : val;
+      }
     }
     if (moveInStr && String(moveInStr).trim()) {
       const d = new Date(moveInStr);
@@ -124,7 +138,7 @@ profileRouter.patch("/", async (req: AuthenticatedRequest, res) => {
       where: { id: profile.id },
       include: { preferences: true },
     });
-    return res.json(updated);
+    return res.json(updated ? profileToApi(updated) : updated);
   } catch (err) {
     console.error("[profile PATCH]", err);
     const message = err instanceof Error ? err.message : "Server error";

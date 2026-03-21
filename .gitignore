@@ -37,6 +37,10 @@ coverage/
 .pytest_cache/
 htmlcov/
 
+# SQLite
+*.db
+*.db-journal
+
 # Misc
 *.swp
 *.swo
