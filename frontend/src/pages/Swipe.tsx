@@ -7,7 +7,6 @@ export default function Swipe() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [index, setIndex] = useState(0);
-  const [exiting, setExiting] = useState<"left" | "right" | null>(null);
   const [matchModal, setMatchModal] = useState<{ candidate: Candidate; matchId: string } | null>(null);
 
   const fetchCandidates = useCallback(async () => {
@@ -32,28 +31,25 @@ export default function Swipe() {
 
   const handleLike = async () => {
     if (!current) return;
-    setExiting("right");
-    await new Promise((r) => setTimeout(r, 280));
+    const uid = current.userId;
+    const snap = current;
     try {
-      const res = await matchApi.like(current.userId);
-      if (res.match) setMatchModal({ candidate: current, matchId: res.match.id });
+      const res = await matchApi.like(uid);
+      if (res.match) setMatchModal({ candidate: snap, matchId: res.match.id });
     } catch {
       // ignore
     }
-    setExiting(null);
     setIndex((i) => i + 1);
   };
 
   const handlePass = async () => {
     if (!current) return;
-    setExiting("left");
-    await new Promise((r) => setTimeout(r, 280));
+    const uid = current.userId;
     try {
-      await matchApi.pass(current.userId);
+      await matchApi.pass(uid);
     } catch {
       // ignore
     }
-    setExiting(null);
     setIndex((i) => i + 1);
   };
 
@@ -115,15 +111,12 @@ export default function Swipe() {
   return (
     <div className="max-w-sm mx-auto">
       <h1 className="font-display text-xl font-semibold text-stone-800 mb-4">Find your roommate</h1>
-      <p className="text-sm text-stone-500 mb-6">Swipe right to like, left to pass.</p>
+      <p className="text-sm text-stone-500 mb-6">
+        <strong className="text-stone-700">Click and drag</strong> the card — right to like, left to pass. Release past the edge or after a long drag to decide.
+      </p>
 
-      <div className="relative h-[420px]">
-        <SwipeCard
-          candidate={current}
-          onLike={handleLike}
-          onPass={handlePass}
-          isExiting={exiting}
-        />
+      <div className="relative h-[440px]">
+        <SwipeCard key={current.userId} candidate={current} onLike={handleLike} onPass={handlePass} />
       </div>
 
       {matchModal && (
