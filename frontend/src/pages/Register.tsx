@@ -37,7 +37,9 @@ export default function Register() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-amber-50 to-stone-100">
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-bold text-stone-800 text-center mb-2">Create account</h1>
-        <p className="text-stone-600 text-center text-sm mb-8">Join Roommate Match</p>
+        <p className="text-stone-600 text-center text-sm mb-8">
+          CMU students only — use your <span className="font-medium text-stone-700">@cmu.edu</span> email.
+        </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -46,7 +48,7 @@ export default function Register() {
           )}
           <input
             type="email"
-            placeholder="Email"
+            placeholder="you@andrew.cmu.edu"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"

@@ -4,6 +4,8 @@
   "private": true,
   "description": "Tinder-style roommate matching for college students (CMU)",
   "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",

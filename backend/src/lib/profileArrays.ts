@@ -1,9 +1,9 @@
 /**
- * SQLite stores arrays as JSON strings. Helpers to convert for Profile fields.
+ * Profile array fields are stored as JSON strings in PostgreSQL; scoring may pass parsed arrays.
  */
-export function parseArray(val: string | null | undefined): string[] {
+export function parseArray(val: string | string[] | null | undefined): string[] {
   if (val == null) return [];
-  if (typeof val !== "string") return Array.isArray(val) ? val : [];
+  if (Array.isArray(val)) return val;
   try {
     const parsed = JSON.parse(val);
     return Array.isArray(parsed) ? parsed : [];

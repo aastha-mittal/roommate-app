@@ -20,15 +20,25 @@ export async function api<T>(
     ? await res.json().catch(() => ({}))
     : {};
   if (!res.ok) {
-    const d = data as { error?: string; detail?: string };
-    let msg = typeof d.error === "string" ? d.error : res.statusText || "Request failed";
+    const d = data as { error?: unknown; detail?: string };
+    let msg: string;
+    if (typeof d.error === "string") msg = d.error;
+    else if (d.error != null) msg = JSON.stringify(d.error);
+    else msg = res.statusText || "Request failed";
     if (typeof d.detail === "string" && d.detail) msg = `${msg}: ${d.detail}`;
     throw new Error(msg);
   }
   return data as T;
 }
 
+export interface AuthConfigResponse {
+  cmuSsoEnabled: boolean;
+  cmuLoginUrl: string | null;
+  devPasswordLogin: boolean;
+}
+
 export const auth = {
+  config: () => api<AuthConfigResponse>("/auth/config"),
   login: (email: string, password: string) =>
     api<{ user: { id: string; email: string; onboardingComplete: boolean }; token: string }>("/auth/login", {
       method: "POST",
@@ -39,9 +49,26 @@ export const auth = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  me: () =>
-    api<{ id: string; email: string; onboardingComplete: boolean }>("/auth/me"),
+  /** Pass signal so startup auth check cannot hang forever (e.g. DB unreachable). */
+  me: (signal?: AbortSignal) =>
+    api<{ id: string; email: string; onboardingComplete: boolean }>("/auth/me", { signal }),
 };
+
+export const housing = {
+  options: (firstYear: boolean, housingType: "ON_CAMPUS" | "OFF_CAMPUS") =>
+    api<HousingOptionsResponse>(
+      `/housing/options?firstYear=${firstYear ? "true" : "false"}&housingType=${housingType}`
+    ),
+};
+
+export interface HousingOptionsResponse {
+  firstYearDorms: { id: string; label: string }[];
+  upperclassDorms: { id: string; label: string }[];
+  onCampusDorms: { id: string; label: string }[];
+  neighborhoods: { id: string; label: string }[];
+  roomStyles: { id: string; label: string }[];
+  offCampusRoomTypes: { id: string; label: string }[];
+}
 
 export const profile = {
   get: () => api<ProfileResponse>("/profile"),
@@ -50,13 +77,25 @@ export const profile = {
 };
 
 export const match = {
+  stats: () =>
+    api<{
+      likesGiven: number;
+      passesGiven: number;
+      matchCount: number;
+      onboardingComplete: boolean;
+      housingType?: string;
+      displayName?: string;
+    }>("/match/stats"),
   candidates: (limit?: number) =>
-    api<{ candidates: Candidate[] }>(`/match/candidates${limit ? `?limit=${limit}` : ""}`),
+    api<{ candidates: Candidate[]; meta?: { poolSampled: number; cohortSize: number } }>(
+      `/match/candidates${limit ? `?limit=${limit}` : ""}`
+    ),
   like: (userId: string) =>
     api<{ like: boolean; match: Match | null }>(`/match/like/${userId}`, { method: "POST" }),
   pass: (userId: string) =>
     api<{ pass: boolean }>(`/match/pass/${userId}`, { method: "POST" }),
   list: () => api<{ matches: MatchListItem[] }>("/match"),
+  likes: () => api<{ likes: LikeSentItem[] }>("/match/likes"),
 };
 
 export const chat = {
@@ -70,13 +109,18 @@ export interface ProfileResponse {
   id: string;
   userId: string;
   onboardingComplete: boolean;
+  displayName?: string;
+  schoolYear?: string;
+  isFirstYear?: boolean;
   housingType?: string;
   preferredAreas: string[];
   dormRanking?: string[];
+  roomStylePreferences?: string[];
   budgetMin?: number;
   budgetMax?: number;
   leaseDuration?: string;
   moveInDate?: string;
+  offCampusRoomType?: string;
   genderPreference?: string;
   sleepSchedule?: string;
   cleanlinessLevel?: number;
@@ -96,22 +140,49 @@ export interface ProfileResponse {
   preferences?: { category: string; value: string; strength: number; dealbreaker: boolean }[];
 }
 
-export type ProfileUpdate = Partial<ProfileResponse> & { preferences?: { category: string; value: string; strength: number; dealbreaker: boolean }[] };
+export type ProfileUpdate = Partial<ProfileResponse> & {
+  preferences?: { category: string; value: string; strength: number; dealbreaker: boolean }[];
+};
 
 export interface Candidate {
   userId: string;
   email?: string;
+  displayName?: string;
   avatarUrl?: string;
   bio?: string;
   tags: string[];
   housingType?: string;
+  isFirstYear?: boolean;
+  schoolYear?: string;
   preferredAreas: string[];
+  dormRanking?: string[];
+  dormLabels?: string[];
+  topDormLabel?: string;
   budgetMin?: number;
   budgetMax?: number;
+  leaseDuration?: string;
+  offCampusRoomType?: string;
   sleepSchedule?: string;
   cleanlinessLevel?: number;
+  guestsFrequency?: string;
+  studyEnvironment?: string;
+  noiseTolerance?: string;
+  smokingStance?: string;
+  drinkingStance?: string;
+  petsStance?: string;
+  introvertExtrovert?: number;
+  socialHabits?: string;
+  conflictStyle?: string;
+  sharedActivities?: string[];
+  roomStylePreferences?: string[];
   compatibilityScore: number;
   compatibilityExplanation: string[];
+}
+
+export interface LikeSentItem extends Candidate {
+  likedAt: string;
+  status: "pending" | "matched";
+  matchId: string | null;
 }
 
 export interface Match {
@@ -126,7 +197,14 @@ export interface MatchListItem {
   matchId: string;
   otherUserId: string;
   otherEmail: string;
-  otherProfile?: { avatarUrl?: string; bio?: string };
+  otherProfile?: {
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+    housingType?: string | null;
+  };
+  compatibilityScore?: number | null;
+  compatibilityExplanation?: string[];
   createdAt: string;
 }
 

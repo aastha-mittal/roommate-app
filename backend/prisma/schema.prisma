@@ -1,5 +1,4 @@
-// Roommate Matching App - SQLite for local dev (no PostgreSQL required)
-// Users, Profiles, Preferences, Dealbreakers, Matches, Messages
+// Roommate Match — default local dev uses SQLite (no Docker). Use PostgreSQL in production (set DATABASE_URL).
 
 generator client {
   provider = "prisma-client-js"
@@ -11,78 +10,89 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  email        String   @unique
+  andrewId     String?  @unique @map("andrew_id")
+  passwordHash String?  @map("password_hash")
+  authProvider String   @default("CMU_SAML") @map("auth_provider") // CMU_SAML | PASSWORD
+  lastActiveAt DateTime? @map("last_active_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  profile   Profile?
-  sentLikes     Like[]    @relation("Liker")
-  receivedLikes Like[]    @relation("Liked")
-  passesGiven   Pass[]    @relation("Passer")
-  passesReceived Pass[]   @relation("Passed")
-  matchAsUserA  Match[]   @relation("MatchUserA")
-  matchAsUserB  Match[]   @relation("MatchUserB")
+  profile          Profile?
+  sentLikes        Like[]    @relation("Liker")
+  receivedLikes    Like[]    @relation("Liked")
+  passesGiven      Pass[]    @relation("Passer")
+  passesReceived   Pass[]    @relation("Passed")
+  matchAsUserA     Match[]   @relation("MatchUserA")
+  matchAsUserB     Match[]   @relation("MatchUserB")
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
 }
 
 model Profile {
-  id        String   @id @default(cuid())
-  userId    String   @unique @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Onboarding completed
   onboardingComplete Boolean @default(false) @map("onboarding_complete")
 
-  // Housing
-  housingType       String?  @map("housing_type")   // ON_CAMPUS | OFF_CAMPUS
-  preferredAreas    String   @default("[]") @map("preferred_areas") // JSON array of neighborhoods
-  dormRanking       String   @default("[]") @map("dorm_ranking") // JSON array of ranked CMU dorms
-  budgetMin         Int?     @map("budget_min")
-  budgetMax         Int?     @map("budget_max")
-  leaseDuration     String?  @map("lease_duration")  // 6_MONTHS | 9_MONTHS | 12_MONTHS
-  moveInDate        DateTime? @map("move_in_date")
-  genderPreference  String?  @map("gender_preference") // MALE | FEMALE | ANY | null
+  displayName   String? @map("display_name")
+  schoolYear    String? @map("school_year") // FRESHMAN | SOPHOMORE | JUNIOR | SENIOR | GRAD | OTHER
+  isFirstYear   Boolean @default(false) @map("is_first_year")
 
-  // Lifestyle
-  sleepSchedule     String?  @map("sleep_schedule")   // EARLY_BIRD | NIGHT_OWL | FLEXIBLE
-  cleanlinessLevel  Int?     @map("cleanliness_level") // 1-5
-  guestsFrequency   String?  @map("guests_frequency") // RARELY | SOMETIMES | OFTEN
-  studyEnvironment  String?  @map("study_environment") // QUIET | MODERATE | SOCIAL
-  noiseTolerance    String?  @map("noise_tolerance")   // LOW | MEDIUM | HIGH
-  smokingStance     String?  @map("smoking_stance")    // NO | OK_OUTSIDE | OK
-  drinkingStance    String?  @map("drinking_stance")   // NO | OCCASIONAL | YES
-  petsStance        String?  @map("pets_stance")       // NO | YES | HAVE_PET
+  housingType String? @map("housing_type") // ON_CAMPUS | OFF_CAMPUS
 
-  // Personality
-  introvertExtrovert Int?    @map("introvert_extrovert") // 1-10 slider
-  socialHabits       String? @map("social_habits")       // HOME_BODY | BALANCED | VERY_SOCIAL
-  conflictStyle      String? @map("conflict_style")       // AVOID | TALK_IT_OUT | MEDIATE
-  sharedActivities   String   @default("[]") @map("shared_activities")  // JSON array of interests
+  /// JSON string: ranked dorm ids (see config/housing.ts)
+  dormRanking       String @default("[]") @map("dorm_ranking")
+  /// JSON string: neighborhood ids near CMU
+  preferredAreas    String @default("[]") @map("preferred_areas")
+  /// JSON string: ROOM_STYLE ids e.g. SINGLE, DOUBLE
+  roomStylePreferences String @default("[]") @map("room_style_preferences")
 
-  // Bio
-  bio           String?
-  tags          String   @default("[]")   // JSON array for interests display
-  avatarUrl     String?    @map("avatar_url")
+  budgetMin    Int?    @map("budget_min")
+  budgetMax    Int?    @map("budget_max")
+  leaseDuration String? @map("lease_duration") // 6_MONTHS | 9_MONTHS | 12_MONTHS
+  moveInDate    DateTime? @map("move_in_date")
+  offCampusRoomType String? @map("off_campus_room_type")
+
+  genderPreference String? @map("gender_preference") // MALE | FEMALE | ANY
+
+  sleepSchedule    String? @map("sleep_schedule")
+  cleanlinessLevel Int?    @map("cleanliness_level")
+  guestsFrequency  String? @map("guests_frequency")
+  studyEnvironment String? @map("study_environment")
+  noiseTolerance   String? @map("noise_tolerance")
+  smokingStance    String? @map("smoking_stance")
+  drinkingStance   String? @map("drinking_stance")
+  petsStance       String? @map("pets_stance")
+
+  introvertExtrovert Int?    @map("introvert_extrovert")
+  socialHabits       String? @map("social_habits")
+  conflictStyle      String? @map("conflict_style")
+  sharedActivities   String  @default("[]") @map("shared_activities")
+
+  bio       String?
+  tags      String  @default("[]")
+  avatarUrl String? @map("avatar_url")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   preferences Preference[]
+
+  @@index([housingType, isFirstYear, onboardingComplete])
 }
 
-// Preference with strength and dealbreaker flag (normalized per category)
 model Preference {
-  id         String   @id @default(cuid())
-  profileId  String   @map("profile_id")
-  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  profileId String  @map("profile_id")
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  category   String   // e.g. CLEANLINESS, SLEEP_SCHEDULE, GUESTS, NOISE, SMOKING, PETS, BUDGET
-  value      String   // enum or value
-  strength   Int      @default(5) // 1-10 how important
-  dealbreaker Boolean @default(false) @map("dealbreaker")
+  category    String
+  value       String
+  strength    Int     @default(5)
+  dealbreaker Boolean @default(false)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -93,10 +103,10 @@ model Preference {
 }
 
 model Like {
-  id         String   @id @default(cuid())
-  likerId    String   @map("liker_id")
-  likedId    String   @map("liked_id")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  likerId   String   @map("liker_id")
+  likedId   String   @map("liked_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   liker User @relation("Liker", fields: [likerId], references: [id], onDelete: Cascade)
   liked User @relation("Liked", fields: [likedId], references: [id], onDelete: Cascade)
@@ -136,13 +146,13 @@ model Match {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  matchId   String   @map("match_id")
-  senderId  String   @map("sender_id")
-  receiverId String  @map("receiver_id")
-  body      String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  matchId    String   @map("match_id")
+  senderId   String   @map("sender_id")
+  receiverId String   @map("receiver_id")
+  body       String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
 
   match    Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
   sender   User  @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)

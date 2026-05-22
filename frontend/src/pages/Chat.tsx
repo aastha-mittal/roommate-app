@@ -73,18 +73,25 @@ export default function Chat() {
     );
   }
 
-  const otherEmail = matchInfo?.otherEmail ?? "Match";
+  const otherName =
+    matchInfo?.otherProfile?.displayName?.trim() ||
+    matchInfo?.otherEmail?.split("@")[0] ||
+    "Match";
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex items-center gap-3 pb-4 border-b border-stone-200">
-        <Link to="/matches" className="text-stone-500 hover:text-stone-700">←</Link>
-        <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center font-display font-semibold text-amber-900">
-          {otherEmail[0]?.toUpperCase() ?? "?"}
+        <Link to="/matches" className="text-stone-500 hover:text-stone-700">← Matches</Link>
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 to-amber-50 flex items-center justify-center font-display font-semibold text-cmu-red">
+          {otherName[0]?.toUpperCase() ?? "?"}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-stone-800 truncate">{otherEmail}</p>
-          {socketConnected && <p className="text-xs text-green-600">Connected</p>}
+          <p className="font-medium text-stone-800 truncate">{otherName}</p>
+          {socketConnected ? (
+            <p className="text-xs text-green-600">Live chat connected</p>
+          ) : (
+            <p className="text-xs text-stone-500">Connecting…</p>
+          )}
         </div>
       </div>
 
@@ -98,7 +105,7 @@ export default function Chat() {
             >
               <div
                 className={`max-w-[80%] px-4 py-2 rounded-2xl ${
-                  isMe ? "bg-amber-500 text-white rounded-br-md" : "bg-stone-200 text-stone-800 rounded-bl-md"
+                  isMe ? "bg-cmu-red text-white rounded-br-md" : "bg-stone-200 text-stone-800 rounded-bl-md"
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
@@ -123,7 +130,7 @@ export default function Chat() {
         <button
           type="submit"
           disabled={sending || !input.trim()}
-          className="py-3 px-5 rounded-xl bg-amber-500 text-white font-medium disabled:opacity-50"
+          className="py-3 px-5 rounded-xl bg-cmu-red text-white font-medium disabled:opacity-50 hover:bg-red-800"
         >
           Send
         </button>

@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { match as matchApi, type MatchListItem } from "../api/client";
+import PageHeader from "../components/ui/PageHeader";
+import CompatibilityBar from "../components/ui/CompatibilityBar";
+import EmptyState from "../components/ui/EmptyState";
 
 export default function Matches() {
   const [matches, setMatches] = useState<MatchListItem[]>([]);
@@ -12,64 +15,95 @@ export default function Matches() {
     setError(null);
     matchApi
       .list()
-      .then((res) => { setMatches(res.matches); setError(null); })
+      .then((res) => {
+        setMatches(res.matches);
+        setError(null);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load matches"))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full" />
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="animate-spin w-10 h-10 border-2 border-cmu-red border-t-transparent rounded-full mb-4" />
+        <p className="text-stone-500">Loading your matches…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-red-600 mb-4">{error}</p>
-        <button type="button" onClick={load} className="py-2 px-4 rounded-xl bg-amber-500 text-white">Retry</button>
-      </div>
+      <EmptyState
+        title="Could not load matches"
+        description={error}
+        action={
+          <button type="button" onClick={load} className="btn-primary">
+            Try again
+          </button>
+        }
+      />
     );
   }
 
   return (
     <div>
-      <h1 className="font-display text-xl font-semibold text-stone-800 mb-4">Matches</h1>
-      <p className="text-sm text-stone-500 mb-6">Chat with roommates you've matched with.</p>
+      <PageHeader
+        title="Matches"
+        subtitle="Mutual likes appear here. Open a conversation to coordinate housing plans."
+        action={
+          <Link to="/swipe" className="btn-secondary shrink-0">
+            Find more
+          </Link>
+        }
+      />
 
       {matches.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-stone-200">
-          <p className="text-stone-600">No matches yet.</p>
-          <p className="text-sm text-stone-500 mt-1">Keep swiping to find roommates!</p>
-          <Link to="/swipe" className="inline-block mt-4 py-2 px-4 rounded-xl bg-amber-500 text-white text-sm font-medium">
-            Go to Swipe
-          </Link>
-        </div>
+        <EmptyState
+          title="No matches yet"
+          description="When you and another student both swipe right, you'll see them here and can start chatting."
+          action={
+            <Link to="/swipe" className="btn-primary">
+              Go to Swipe
+            </Link>
+          }
+        />
       ) : (
-        <ul className="space-y-2">
-          {matches.map((m) => (
-            <li key={m.matchId}>
-              <Link
-                to={`/matches/${m.matchId}/chat`}
-                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-stone-200 hover:border-amber-300 hover:bg-amber-50/50 transition"
-              >
-                <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-lg font-display font-semibold text-amber-900">
-                  {m.otherEmail?.[0]?.toUpperCase() ?? "?"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-stone-800 truncate">{m.otherEmail}</p>
-                  {m.otherProfile?.bio && (
-                    <p className="text-sm text-stone-500 truncate">{m.otherProfile.bio}</p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {matches.map((m) => {
+            const displayName =
+              m.otherProfile?.displayName?.trim() || m.otherEmail?.split("@")[0] || "Match";
+            return (
+              <li key={m.matchId}>
+                <Link
+                  to={`/matches/${m.matchId}/chat`}
+                  className="card p-4 flex flex-col gap-3 hover:border-cmu-red/30 hover:shadow-md transition h-full"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-50 to-amber-50 flex items-center justify-center text-xl font-display font-bold text-cmu-red shrink-0 border border-stone-100">
+                      {(m.otherProfile?.displayName?.[0] ?? m.otherEmail?.[0] ?? "?").toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display font-semibold text-stone-900 truncate">{displayName}</p>
+                      {m.otherProfile?.bio && (
+                        <p className="text-sm text-stone-500 line-clamp-2 mt-0.5">{m.otherProfile.bio}</p>
+                      )}
+                    </div>
+                    <span className="text-stone-400 text-lg" aria-hidden>
+                      →
+                    </span>
+                  </div>
+                  {m.compatibilityScore != null && (
+                    <CompatibilityBar score={m.compatibilityScore} compact />
                   )}
-                </div>
-                <span className="text-stone-400">→</span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

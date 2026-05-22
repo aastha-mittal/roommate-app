@@ -1,0 +1,22 @@
+# Local PostgreSQL for development.
+# Default DB name is roommate_match (see backend/.env.example). Override POSTGRES_DB if your DATABASE_URL uses another name (e.g. roommate_app).
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: roommate_match
+    volumes:
+      - roommate_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d roommate_match"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  roommate_pgdata:

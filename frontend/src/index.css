@@ -11,10 +11,46 @@ html {
 }
 
 body {
-  @apply font-sans antialiased bg-stone-50 text-stone-900;
+  @apply font-sans antialiased bg-stone-100 text-stone-900;
 }
 
-/* Swipe card touch */
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-stone-200/80 shadow-sm;
+  }
+  .card-elevated {
+    @apply bg-white rounded-2xl border border-stone-200 shadow-md;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-cmu-red px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition hover:bg-stone-50;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .page-shell {
+    @apply max-w-6xl mx-auto w-full px-4 sm:px-6;
+  }
+}
+
+/* CMU brand accent */
+:root {
+  --cmu-red: #c41230;
+  --cmu-gray: #6d6e71;
+}
+
+.bg-cmu-red {
+  background-color: var(--cmu-red);
+}
+.text-cmu-red {
+  color: var(--cmu-red);
+}
+.border-cmu-red {
+  border-color: var(--cmu-red);
+}
+
 .no-select {
   -webkit-user-select: none;
   user-select: none;
